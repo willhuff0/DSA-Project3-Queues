@@ -18,7 +18,7 @@ class BoundedRingBufferQueue {
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> dequeuePos{0};
 
 public:
-    BoundedRingBufferQueue(size_t bufferSize);
+    explicit BoundedRingBufferQueue(size_t bufferSize);
     ~BoundedRingBufferQueue();
 
     bool Enqueue(const T& value);
@@ -55,8 +55,7 @@ bool BoundedRingBufferQueue<T>::Enqueue(const T &value) {
 
         if (diff == 0) {
             // Slot is free
-            if (enqueuePos.compare_exchange_weak(pos, pos+1,
-                                                 std::memory_order_relaxed, std::memory_order_relaxed)) {
+            if (enqueuePos.compare_exchange_weak(pos, pos+1, std::memory_order_relaxed)) {
                 break;
             }
             // compare and exchange failed, another thread already swapped it, try again
@@ -92,8 +91,7 @@ bool BoundedRingBufferQueue<T>::Dequeue(T &out) {
 
         if (diff == 0) {
             // slot is ready to dequeue
-            if (dequeuePos.compare_exchange_weak(pos, pos+1,
-                                                 std::memory_order_relaxed, std::memory_order_relaxed)) {
+            if (dequeuePos.compare_exchange_weak(pos, pos+1, std::memory_order_relaxed)) {
                 break;
             }
             // compare and exchange failed, another thread beat us, try again
