@@ -1,20 +1,18 @@
-#include "BoundedRingBuffer/BoundedRingBufferQueue.h"
+#include "src/Queues/OLD-BoundedRingBufferQueue.h"
+#include "src/Evaluation/Job.h"
+#include "src/Evaluation/JobSystem.h"
 
 #include <iostream>
+#include <functional>
 
 int main() {
-    BoundedRingBufferQueue<int> queue(64);
+    OLD<Job*> queue(64);
 
-    queue.Enqueue(1);
-    queue.Enqueue(2);
-    queue.Enqueue(3);
-    queue.Enqueue(4);
-    queue.Enqueue(5);
+    std::vector<Job> availableJobs {
 
-    int val;
-    while (queue.Dequeue(val)) {
-        std::cout << val << std::endl;
-    }
+    };
+
+    JobSystem<OLD<Job*>> jobSystem(availableJobs);
 
     return 0;
 }

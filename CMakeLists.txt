@@ -3,4 +3,4 @@ project(queues)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(queues main.cpp)
+add_executable(queues main.cpp src/Evaluation/JobSystem.h)

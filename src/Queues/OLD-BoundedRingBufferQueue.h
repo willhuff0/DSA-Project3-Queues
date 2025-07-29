@@ -4,7 +4,7 @@
 #include <cassert>
 
 template<class T>
-class BoundedRingBufferQueue {
+class OLD {
     struct Cell {
         std::atomic<size_t> sequence;
         T data;
@@ -18,15 +18,15 @@ class BoundedRingBufferQueue {
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> dequeuePos{0};
 
 public:
-    explicit BoundedRingBufferQueue(size_t bufferSize);
-    ~BoundedRingBufferQueue();
+    explicit OLD(size_t bufferSize);
+    ~OLD();
 
     bool Enqueue(const T& value);
     bool Dequeue(T& out);
 };
 
 template<typename T>
-BoundedRingBufferQueue<T>::BoundedRingBufferQueue(size_t bufferSize)
+OLD<T>::OLD(size_t bufferSize)
     : bufferMask(bufferSize - 1),
     buffer(reinterpret_cast<Cell*>(operator new[](sizeof(Cell) * bufferSize))) {
     assert((bufferSize & (bufferSize - 1)) == 0 && "bufferSize must be a power of two");
@@ -38,12 +38,12 @@ BoundedRingBufferQueue<T>::BoundedRingBufferQueue(size_t bufferSize)
 }
 
 template<typename T>
-BoundedRingBufferQueue<T>::~BoundedRingBufferQueue() {
+OLD<T>::~OLD() {
     operator delete[](buffer);
 }
 
 template<typename T>
-bool BoundedRingBufferQueue<T>::Enqueue(const T &value) {
+bool OLD<T>::Enqueue(const T &value) {
     Cell* cell;
     size_t pos = enqueuePos.load(std::memory_order_relaxed);
 
@@ -80,7 +80,7 @@ bool BoundedRingBufferQueue<T>::Enqueue(const T &value) {
 }
 
 template<typename T>
-bool BoundedRingBufferQueue<T>::Dequeue(T &out) {
+bool OLD<T>::Dequeue(T &out) {
     Cell* cell;
     size_t pos = dequeuePos.load(std::memory_order_relaxed);
 

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../../Job.h"
+
 #include <atomic>
 
 /// For testing pure overhead of queue
-struct NoOpJob {
+struct NoOpJob : public Job {
     static std::atomic<size_t> counter;
     void operator()() {
         counter++;
