@@ -1,10 +1,13 @@
 #pragma once
 
+#include <IQueue.h>
+#include <Job.h>
+
 #include <atomic>
 #include <cassert>
 
 template<class T>
-class OLD {
+class OLD : public IQueue<T> {
     struct Cell {
         std::atomic<size_t> sequence;
         T data;
@@ -18,10 +21,10 @@ class OLD {
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> dequeuePos{0};
 
 public:
-    explicit OLD(size_t bufferSize);
+    explicit OLD(size_t bufferSize = 64);
     ~OLD();
 
-    bool Enqueue(const T& value);
+    void Enqueue(const T& value);
     bool Dequeue(T& out);
 };
 
@@ -43,7 +46,7 @@ OLD<T>::~OLD() {
 }
 
 template<typename T>
-bool OLD<T>::Enqueue(const T &value) {
+void OLD<T>::Enqueue(const T &value) {
     Cell* cell;
     size_t pos = enqueuePos.load(std::memory_order_relaxed);
 
@@ -62,7 +65,7 @@ bool OLD<T>::Enqueue(const T &value) {
         }
         else if (diff < 0) {
             // buffer is full
-            return false;
+            return;
         }
         else {
             // different thread won the enqueue, try again
@@ -75,8 +78,6 @@ bool OLD<T>::Enqueue(const T &value) {
 
     // mark cell ready for dequeue
     cell->sequence.store(pos + 1, std::memory_order_release);
-
-    return true;
 }
 
 template<typename T>
@@ -110,7 +111,7 @@ bool OLD<T>::Dequeue(T &out) {
     out = cell->data;
 
     // mark cell ready for enqueue
-    cell->sequence.store(pos + 1, std::memory_order_release);
+    cell->sequence.store(pos + bufferMask + 1, std::memory_order_release);
 
     return true;
 }

@@ -1,5 +1,7 @@
 #pragma once
 
-struct Job {
+class Job {
+public:
+    virtual ~Job() = default;
     virtual void operator()() = 0;
 };

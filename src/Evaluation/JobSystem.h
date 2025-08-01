@@ -1,7 +1,9 @@
 #pragma once
 
-#include "Job.h"
-#include "../Queues/Queue.h"
+#include <Job.h>
+#include <IQueue.h>
+
+#include "Stopwatch.h"
 
 #include <iostream>
 #include <atomic>
@@ -10,36 +12,55 @@
 
 template<typename QueueT>
 class JobSystem {
-    static_assert(std::is_base_of_v<Queue<Job>, QueueT>);
+    static_assert(std::is_base_of_v<IQueue<Job*>, QueueT>);
 public:
-    explicit JobSystem(std::vector<Job> jobs) : available_jobs(std::move(jobs)) { }
+    explicit JobSystem(const std::vector<std::unique_ptr<Job>>& jobs) : availableJobs(jobs) { }
 
-    void RunTest(int numProducers, int numConsumers) {
+    void RunTest(int numProducers, int numConsumers, size_t numJobs) {
+        started = false;
+        running = true;
+
         numJobsCompleted = 0;
+        threads.reserve(numProducers + numConsumers);
         for (int i = 0; i < numProducers; i++) {
-            producers.emplace_back(producerEntry(i));
+            threads.emplace_back([this, i] { producerEntry(i); });
         }
         for (int i = 0; i < numConsumers; i++) {
-            consumers.emplace_back(consumerEntry());
+            threads.emplace_back([this] { consumerEntry(); });
         }
-        while (numJobsCompleted < 1000000) { }
-        std::cout << "done" << std::endl;
+
+        std::cout << "Starting test [" << typeid(QueueT).name() << "]" << std::endl;
+        Stopwatch stopwatch;
+        started = true;
+
+        while (numJobsCompleted < numJobs) { }
+
+        stopwatch.TickAndPrint("Test result [" + std::string(typeid(QueueT).name()) + "]: completed " + std::to_string(numJobsCompleted) + " jobs.");
+        running = false;
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
     }
 
 private:
     void producerEntry(int index) {
-        int next_job_type = index % available_jobs.size();
+        while (!started) { }
+
+        int nextJobType = index % availableJobs.size();
         while (running) {
-            Job* jobToInsert = &available_jobs[next_job_type];
-            next_job_type = (next_job_type + 1) % available_jobs.size();
-            queue.enqueue(jobToInsert);
+            Job* jobToInsert = availableJobs[nextJobType].get();
+            nextJobType = (nextJobType + 1) % availableJobs.size();
+            queue.Enqueue(jobToInsert);
         }
     }
 
     void consumerEntry() {
+        while (!started) { }
+
         Job* job;
         while (running) {
-            if (!queue.dequeue(&job)) continue;
+            if (!queue.Dequeue(job)) continue;
             job->operator()();
             numJobsCompleted++;
         }
@@ -48,11 +69,11 @@ private:
 private:
     QueueT queue;
 
-    std::vector<Job> available_jobs; // readonly once test starts
+    const std::vector<std::unique_ptr<Job>>& availableJobs;
 
+    std::atomic<bool> started = false;
     std::atomic<bool> running = false;
-    std::atomic<unsigned long long> numJobsCompleted = 0;
+    std::atomic<size_t> numJobsCompleted = 0;
 
-    std::vector<std::thread> producers;
-    std::vector<std::thread> consumers; // workers
+    std::vector<std::thread> threads;
 };
