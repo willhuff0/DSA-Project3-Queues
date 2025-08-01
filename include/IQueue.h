@@ -1,7 +1,7 @@
 #pragma once
 
 template<typename T>
-class Queue {
+class IQueue {
 public:
     // Enqueues value.
     virtual void Enqueue(const T& value) = 0;
