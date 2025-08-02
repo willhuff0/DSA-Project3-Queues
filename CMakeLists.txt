@@ -3,5 +3,6 @@ project(queues)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(queues src/main.cpp)
+add_executable(queues src/main.cpp
+        src/Queues/BoundedCircularBuffer.h)
 target_include_directories(queues PRIVATE include)
