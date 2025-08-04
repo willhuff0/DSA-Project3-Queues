@@ -8,8 +8,10 @@
 template<typename T>
 class StdQueueBlocking : public IQueue<T> {
 public:
-    void Enqueue(const T& value);
-    bool Dequeue(T& out);
+    static std::string GetName() { return "std::queue (Blocking)"; }
+
+    void Enqueue(const T& value) override;
+    bool Dequeue(T& out) override;
 
 private:
     std::queue<T> queue;

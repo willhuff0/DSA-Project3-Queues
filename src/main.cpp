@@ -37,12 +37,12 @@ void runThroughput(const std::string& path) {
     static std::vector<int> consumerCounts { 8 };
     static size_t numIterations = jobCounts.size() * producerCounts.size() * consumerCounts.size();
 
-    std::vector<std::tuple<const char* /*queueName*/, size_t /*jobCount*/, int /*producerCount*/, int /*consumerCount*/, size_t /*numJobsCompleted*/, double /*elapsedSeconds*/, double /*throughput*/>> rows;
+    std::vector<std::tuple<std::string /*queueName*/, size_t /*jobCount*/, int /*producerCount*/, int /*consumerCount*/, size_t /*numJobsCompleted*/, double /*elapsedSeconds*/, double /*throughput*/>> rows;
     rows.reserve(numIterations * sizeof...(TQueues));
     size_t i = 1;
     ([&](auto* ptr) {
         size_t j = 1;
-        std::cout << "[Throughput] Queue (" << i << "/" << sizeof...(TQueues) << "): " << typeid(std::remove_reference_t<decltype(*ptr)>).name() << std::endl;
+        std::cout << "[Throughput]  Queue (" << i << "/" << sizeof...(TQueues) << "): " << std::remove_reference_t<decltype(*ptr)>::GetName() << std::endl;
         for (size_t jobCount : jobCounts) {
             for (int producerCount : producerCounts) {
                 for (int consumerCount: consumerCounts) {
@@ -54,7 +54,7 @@ void runThroughput(const std::string& path) {
                     auto numJobsCompleted = result.numJobsCompleted;
                     std::chrono::duration<double, std::chrono::seconds::period> elapsedSeconds = result.elapsed;
                     auto throughput = numJobsCompleted / elapsedSeconds.count();
-                    rows.emplace_back(typeid(std::remove_reference_t<decltype(*ptr)>).name(), jobCount, producerCount, consumerCount, numJobsCompleted, elapsedSeconds.count(), throughput);
+                    rows.emplace_back(std::remove_reference_t<decltype(*ptr)>::GetName(), jobCount, producerCount, consumerCount, numJobsCompleted, elapsedSeconds.count(), throughput);
                 }
             }
         }
@@ -65,11 +65,12 @@ void runThroughput(const std::string& path) {
         "Job Count",
         "Producer Count",
         "Consumer Count",
-        "Num Jobs Completed",
+        "Completed Job Count",
         "Elapsed Seconds",
         "Throughput"
     };
     writeCsv(path, header, rows);
+    std::cout << "[Throughput] Saving results to " << path << std::endl;
 }
 
 void runLatency(const std::string& path) {
@@ -77,7 +78,7 @@ void runLatency(const std::string& path) {
 }
 
 int main() {
-    runThroughput<LinkedListQueue<Job*>, BoundedCircularBufferQueue<Job*, 64>, StdQueueBlocking<Job*>>("Results/Throughput.csv");
-    //runLatency<LinkedListQueue<Job*>, BoundedCircularBufferQueue<Job*, 64>, StdQueueBlocking<Job*>>("Results/Latency.csv");
+    runThroughput<LinkedListQueue<Job*>, BoundedCircularBufferQueue<Job*, 64>, StdQueueBlocking<Job*>>("../reporting/results/throughput.csv");
+    //runLatency<LinkedListQueue<Job*>, BoundedCircularBufferQueue<Job*, 64>, StdQueueBlocking<Job*>>("../reporting/results/latency.csv");
     return 0;
 }

@@ -14,6 +14,7 @@ private:
     std::atomic<Node*> tail;
 
 public:
+    static std::string GetName() { return "Linked List Queue"; }
 
     LinkedListQueue() {
         Node* dummy = new Node(nullptr);
