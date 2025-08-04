@@ -1,6 +1,5 @@
 #include "Evaluation/Benchmark.h"
 
-#include "Queues/BoundedRingBufferQueue-Old.h"
 #include "Queues/LinkedListQueue.h"
 #include "Queues/BoundedCircularBuffer.h"
 #include "Queues/StdQueueBlocking.h"
@@ -30,41 +29,45 @@ template<typename... TQueues>
 void runThroughput(const std::string& path) {
     std::cout << "[Throughput] Starting throughput benchmark" << std::endl;
 
-    static std::vector<size_t> jobCounts { (size_t)1E5, (size_t)2.5E5, (size_t)5E5, (size_t)7.5E5,
-                                           (size_t)1E6, (size_t)2.5E6, (size_t)5E6, (size_t)7.5E6,
+    static std::vector<size_t> jobCounts { (size_t)1E4, (size_t)2E4, (size_t)5E4,
+                                           (size_t)1E5, (size_t)2E5, (size_t)5E5,
+                                           (size_t)1E6, (size_t)2E6, (size_t)5E6,
                                            (size_t)1E7 };
     static std::vector<int> producerCounts { 8 };
     static std::vector<int> consumerCounts { 8 };
     static size_t numIterations = jobCounts.size() * producerCounts.size() * consumerCounts.size();
 
-    std::vector<std::tuple<const char* /*queueName*/, size_t /*jobCount*/, int /*producerCount*/, int /*consumerCount*/, size_t /*numJobsCompleted*/, double /*elapsedSeconds*/>> rows;
+    std::vector<std::tuple<const char* /*queueName*/, size_t /*jobCount*/, int /*producerCount*/, int /*consumerCount*/, size_t /*numJobsCompleted*/, double /*elapsedSeconds*/, double /*throughput*/>> rows;
     rows.reserve(numIterations * sizeof...(TQueues));
+    size_t i = 1;
     ([&](auto* ptr) {
-        size_t i = 1;
-        std::cout << "[Throughput] Queue: " << typeid(std::remove_reference_t<decltype(*ptr)>).name() << std::endl;
+        size_t j = 1;
+        std::cout << "[Throughput] Queue (" << i << "/" << sizeof...(TQueues) << "): " << typeid(std::remove_reference_t<decltype(*ptr)>).name() << std::endl;
         for (size_t jobCount : jobCounts) {
             for (int producerCount : producerCounts) {
                 for (int consumerCount: consumerCounts) {
-                    std::cout << "[Throughput]   Iteration " << i++ << " / " << numIterations << std::endl;
+                    std::cout << "[Throughput]   Iteration " << j++ << " / " << numIterations << std::endl;
 
                     Benchmark<std::remove_reference_t<decltype(*ptr)>> benchmark;
                     auto result = benchmark.RunThroughput(jobCount, producerCount, consumerCount);
 
                     auto numJobsCompleted = result.numJobsCompleted;
                     std::chrono::duration<double, std::chrono::seconds::period> elapsedSeconds = result.elapsed;
-                    rows.emplace_back(typeid(std::remove_reference_t<decltype(*ptr)>).name(), jobCount, producerCount, consumerCount, numJobsCompleted, elapsedSeconds.count());
+                    auto throughput = numJobsCompleted / elapsedSeconds.count();
+                    rows.emplace_back(typeid(std::remove_reference_t<decltype(*ptr)>).name(), jobCount, producerCount, consumerCount, numJobsCompleted, elapsedSeconds.count(), throughput);
                 }
             }
         }
     }(static_cast<TQueues*>(nullptr)), ...);
 
-    static std::array<std::string, 6> header {
+    static std::array<std::string, 7> header {
         "Queue",
         "Job Count",
         "Producer Count",
         "Consumer Count",
         "Num Jobs Completed",
         "Elapsed Seconds",
+        "Throughput"
     };
     writeCsv(path, header, rows);
 }
@@ -74,7 +77,7 @@ void runLatency(const std::string& path) {
 }
 
 int main() {
-    runThroughput<LinkedListQueue<Job*>, BoundedCircularBuffer<Job*, 64>, StdQueueBlocking<Job*>>("Results/Throughput.csv");
-    //runLatency<LinkedListQueue<Job*>, BoundedCircularBuffer<Job*, 64>, StdQueueBlocking<Job*>>("Results/Latency.csv");
+    runThroughput<LinkedListQueue<Job*>, BoundedCircularBufferQueue<Job*, 64>, StdQueueBlocking<Job*>>("Results/Throughput.csv");
+    //runLatency<LinkedListQueue<Job*>, BoundedCircularBufferQueue<Job*, 64>, StdQueueBlocking<Job*>>("Results/Latency.csv");
     return 0;
 }
