@@ -97,8 +97,7 @@ private:
 
         if constexpr (measureLatency) {
             std::lock_guard lock(latenciesMutex);
-            latenciesCumulative.reserve(latenciesCumulative.size() + latencies.size());
-            std::copy(latencies.begin(), latenciesCumulative.begin() + latenciesCumulative.size(), latencies.size());
+            latenciesCumulative.insert(latenciesCumulative.end(), latencies.begin(), latencies.end());
         }
     }
 

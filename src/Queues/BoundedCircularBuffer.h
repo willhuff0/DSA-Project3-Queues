@@ -10,7 +10,7 @@ template<class T, size_t bufferSize>
 class BoundedCircularBufferQueue : public IQueue<T> {
     static_assert((bufferSize & (bufferSize - 1)) == 0 && "bufferSize must be a power of two");
 public:
-    static std::string GetName() { return "Circular Buffer Queue"; }
+    static std::string GetName() { return "Circular Buffer Queue (" + std::to_string(bufferSize) + " cells)"; }
 
     BoundedCircularBufferQueue();
     ~BoundedCircularBufferQueue();

@@ -12,9 +12,9 @@
 #include <vector>
 
 void createDefaultJobPool(std::vector<std::unique_ptr<Job>>& dest) {
-    dest.push_back(std::make_unique<AllocJob>(1024));
+    dest.push_back(std::make_unique<AllocJob>(1024 * 16));
     dest.push_back(std::make_unique<NoOpJob>());
     dest.push_back(std::make_unique<RandomBranchingJob>());
-//    jobs.push_back(std::make_unique<SleepJob>(1));
-//    jobs.push_back(std::make_unique<SpinJob>(1));
+    dest.push_back(std::make_unique<SleepJob>(1));
+    dest.push_back(std::make_unique<SpinJob>(1));
 }
