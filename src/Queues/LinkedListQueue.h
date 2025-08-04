@@ -1,9 +1,9 @@
 #pragma once
-#include "Queue.h"
+#include <IQueue.h>
 #include <atomic>
 
 template<typename T>
-class LinkedListQueue : public Queue<T>{
+class LinkedListQueue : public IQueue<T>{
 private:
     struct Node {
         T data;
