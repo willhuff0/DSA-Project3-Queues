@@ -8,17 +8,21 @@
 
 template<class T, size_t bufferSize>
 class BoundedCircularBufferQueue : public IQueue<T> {
+    // Checks if bufferSize is a power of two, if it isn't prints message
     static_assert((bufferSize & (bufferSize - 1)) == 0 && "bufferSize must be a power of two");
 public:
     static std::string GetName() { return "Circular Buffer Queue (" + std::to_string(bufferSize) + " cells)"; }
 
+    // Constructor and Deconstructor
     BoundedCircularBufferQueue();
     ~BoundedCircularBufferQueue();
 
+    // Enqueue and Dequeue declaration
     void Enqueue(const T& value) override;
     bool Dequeue(T& out) override;
 
 private:
+    // Structure for each cell
     struct Cell {
         std::atomic<size_t> sequence;
         T data;
@@ -32,6 +36,7 @@ private:
     alignas(std::hardware_destructive_interference_size) std::atomic<size_t> dequeuePos{0};
 };
 
+// Constructor
 template<typename T, size_t bufferSize>
 BoundedCircularBufferQueue<T, bufferSize>::BoundedCircularBufferQueue()
         : bufferMask(bufferSize - 1),
@@ -42,11 +47,13 @@ BoundedCircularBufferQueue<T, bufferSize>::BoundedCircularBufferQueue()
     }
 }
 
+// Deconstructor
 template<typename T, size_t bufferSize>
 BoundedCircularBufferQueue<T, bufferSize>::~BoundedCircularBufferQueue() {
     operator delete[](buffer);
 }
 
+// Enqueue Implementation
 template<typename T, size_t bufferSize>
 void BoundedCircularBufferQueue<T, bufferSize>::Enqueue(const T &value) {
     Cell* cell;
@@ -82,6 +89,7 @@ void BoundedCircularBufferQueue<T, bufferSize>::Enqueue(const T &value) {
     cell->sequence.store(pos + 1, std::memory_order_release);
 }
 
+// Dequeue implementation
 template<typename T, size_t bufferSize>
 bool BoundedCircularBufferQueue<T, bufferSize>::Dequeue(T &out) {
     Cell* cell;
