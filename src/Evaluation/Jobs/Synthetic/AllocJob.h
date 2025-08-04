@@ -2,6 +2,8 @@
 
 #include <Job.h>
 
+#include <cstddef>
+
 class AllocJob : public Job {
 public:
     explicit AllocJob(size_t size) : size(size) { }

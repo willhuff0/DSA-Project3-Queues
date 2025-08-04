@@ -30,4 +30,3 @@ bool StdQueueBlocking<T>::Dequeue(T& out) {
     queue.pop();
     return true;
 }
-

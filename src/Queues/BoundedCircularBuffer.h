@@ -6,8 +6,9 @@
 #include <atomic>
 #include <cassert>
 
-template<typename T>
+template<typename T, size_t bufferSize>
 class BoundedCircularBuffer : public IQueue<T> {
+    static_assert(bufferSize >= 2 && (bufferSize & bufferSize - 1) == 0);
 private:
     struct Cell {
         std::atomic<size_t> sequence;
@@ -30,8 +31,7 @@ private:
     BoundedCircularBuffer& operator=(BoundedCircularBuffer const&);
     public:
     // Constructor
-    BoundedCircularBuffer(size_t bufferSize) : buffer(new Cell[bufferSize]), bufferMask(bufferSize - 1) {
-        assert(bufferSize >= 2 && (bufferSize& bufferSize - 1) == 0);
+    BoundedCircularBuffer() : buffer(new Cell[bufferSize]), bufferMask(bufferSize - 1) {
         for (size_t i = 0; i < bufferSize; i++) {
             buffer[i].sequence.store(i, std::memory_order_relaxed);
         }

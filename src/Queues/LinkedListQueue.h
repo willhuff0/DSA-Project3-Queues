@@ -20,7 +20,14 @@ public:
         head.store(dummy);
         tail.store(dummy);
     }
-    ~LinkedListQueue();
+    ~LinkedListQueue() {
+        Node* node = head.load();
+        while (node != nullptr) {
+            Node* next = node->next.load();
+            delete node;
+            node = next;
+        }
+    }
 
     void Enqueue(const T& value) override {
         Node* new_node = new Node(value);
