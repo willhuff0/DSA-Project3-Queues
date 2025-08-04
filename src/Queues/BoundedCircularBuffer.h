@@ -1,24 +1,25 @@
 #pragma once
 
+#include <IQueue.h>
 #include <Job.h>
+
 #include <atomic>
 #include <cassert>
 
-template<typename T>;
-
-class BoundedCircularBuffer {
+template<typename T>
+class BoundedCircularBuffer : public IQueue<T> {
 private:
-    struct jobCell {
+    struct Cell {
         std::atomic<size_t> sequence;
 
-        Job job;
+        T value;
     };
 
     static size_t const cachelineSize = 64;
     typedef char cacheline_pad_t [cachelineSize];
 
     cacheline_pad_t pad0;
-    jobCell* const buffer;
+    Cell* const buffer;
     size_t const bufferMask;
     cacheline_pad_t pad1;
     std::atomic<size_t> enqueuePosition;
@@ -29,7 +30,7 @@ private:
     BoundedCircularBuffer& operator=(BoundedCircularBuffer const&);
     public:
     // Constructor
-    BoundedCircularBuffer(size_t bufferSize) : buffer(new jobCell[bufferSize]), bufferMask(bufferSize - 1) {
+    BoundedCircularBuffer(size_t bufferSize) : buffer(new Cell[bufferSize]), bufferMask(bufferSize - 1) {
         assert(bufferSize >= 2 && (bufferSize& bufferSize - 1) == 0);
         for (size_t i = 0; i < bufferSize; i++) {
             buffer[i].sequence.store(i, std::memory_order_relaxed);
@@ -43,8 +44,8 @@ private:
         delete[] buffer;
     }
 
-    bool enqueue(Job const& job) {
-        jobCell* cell;
+    void Enqueue(const T& value) {
+        Cell* cell;
         size_t position = enqueuePosition.load(std::memory_order_relaxed);
         for (int i = 0; i > -1; i++) {
             cell = &buffer[position & (bufferMask - 1)];
@@ -57,19 +58,19 @@ private:
                 }
             }
             else if (diff < 0) {
-                return false;
+                return;//return false;
             }
             else {
                 position = enqueuePosition.load(std::memory_order_relaxed);
             }
         }
-        cell->job = job;
+        cell->value = value;
         cell->sequence.store(position + 1, std::memory_order_release);
-        return true;
+        //return true;
     }
 
-    bool dequeue(Job& job) {
-        jobCell* cell;
+    bool Dequeue(T& job) {
+        Cell* cell;
         size_t position = dequeuePosition.load(std::memory_order_relaxed);
         for (int i = 0; i > -1; i++) {
             cell = &buffer[position];
@@ -89,7 +90,7 @@ private:
                 position = dequeuePosition.load(std::memory_order_relaxed);
             }
         }
-        job = cell->job;
+        job = cell->value;
         cell->sequence.store(position + +bufferMask + 1, std::memory_order_release);
         return true;
     }
