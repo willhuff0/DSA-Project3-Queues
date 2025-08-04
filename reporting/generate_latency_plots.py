@@ -45,10 +45,10 @@ for file_path in csv_files:
         line = plt.plot(subset["Producer/Consumer Count"], subset["Average Latency (ns)"], marker="o", linestyle="-", label=queue_type)
 
         # Calculate and plot linear trendline
-        if len(subset["Producer/Consumer Count"]) > 1:
-            coeffs = np.polyfit(subset["Producer/Consumer Count"], subset["Average Latency (ns)"], 1)
-            trendline = np.poly1d(coeffs)
-            plt.plot(subset["Producer/Consumer Count"], trendline(subset["Producer/Consumer Count"]), linestyle="--", color=line[0].get_color())
+        # if len(subset["Producer/Consumer Count"]) > 1:
+        #     coeffs = np.polyfit(subset["Producer/Consumer Count"], subset["Average Latency (ns)"], 1)
+        #     trendline = np.poly1d(coeffs)
+        #     plt.plot(subset["Producer/Consumer Count"], trendline(subset["Producer/Consumer Count"]), linestyle="--", color=line[0].get_color())
 
     # Configure and save the plot
     plt.title(f"Average Latency vs. P/C Count ({job_count_str} Jobs)")
