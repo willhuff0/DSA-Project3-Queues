@@ -5,6 +5,7 @@
 #include <atomic>
 #include <random>
 
+/// Simulates branch prediction failure
 class RandomBranchingJob : public Job {
 public:
     // Constructor declaration

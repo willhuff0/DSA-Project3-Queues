@@ -4,7 +4,7 @@
 
 #include <atomic>
 
-/// For testing pure overhead of queue
+/// Simulates pure overhead of queue
 class NoOpJob : public Job {
 public:
     // Constructor and Destructor declaration
