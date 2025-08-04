@@ -9,6 +9,7 @@
 #include <fstream>
 #include <filesystem>
 
+// Returns a string that shows a number of jobs in shorthand
 std::string formatJobCount(size_t count) {
     if (count >= 1000000000) {
         return std::to_string(count / 1000000000) + " B";
@@ -22,6 +23,7 @@ std::string formatJobCount(size_t count) {
     return std::to_string(count);
 }
 
+// Returns a string that is formatted for throughput
 std::string formatThroughput(double throughput, int decimalPlaces) {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(decimalPlaces);
@@ -43,6 +45,7 @@ std::string formatThroughput(double throughput, int decimalPlaces) {
     return ss.str();
 }
 
+// Attempts to create a path towards the data set
 bool createDirectoriesRecursive(const std::string& path) {
     std::filesystem::path filePath = path;
     std::filesystem::path directoryPath = filePath.parent_path();
@@ -52,6 +55,7 @@ bool createDirectoriesRecursive(const std::string& path) {
             std::filesystem::create_directories(directoryPath);
         }
     } catch (const std::filesystem::filesystem_error& e) {
+        // Prints error message when unable to find the path
         std::cerr << "Error creating directories: " << e.what() << std::endl;
         return false;
     }
@@ -60,15 +64,19 @@ bool createDirectoriesRecursive(const std::string& path) {
 }
 
 template<typename... Args>
+// Creates a .csv file consisting of the data
 void writeCsv(const std::string& path, const std::array<std::string, sizeof...(Args)>& header, const std::vector<std::tuple<Args...>>& rows) {
+    // Creates the path to where the csv file will be
     createDirectoriesRecursive(path);
     std::ofstream file(path.c_str());
 
+    // Writes header to the file
     for(const std::string& headerVal : header) {
         file << headerVal << ',';
     }
     file << std::endl;
 
+    // Writes contents of rows to the file
     for(const std::tuple<Args...>& row : rows) {
         std::apply([&](const auto&... elements) {
             ((file << elements << ','), ...);
@@ -79,6 +87,7 @@ void writeCsv(const std::string& path, const std::array<std::string, sizeof...(A
     file.close();
 }
 
+// Runs tests and measures throughput, and outputs to console that throughput is being measured and the exact numbers
 template<typename... TQueues>
 void runThroughput(const BenchmarkSuiteConfig& config, const std::string& basepath) {
     for (const auto& jobCount : config.jobCounts) {
@@ -133,6 +142,7 @@ void runThroughput(const BenchmarkSuiteConfig& config, const std::string& basepa
     }
 }
 
+// Runs latency tests, and outputs to console what tests are being performed and the data being collected
 template<typename... TQueues>
 void runLatency(const BenchmarkSuiteConfig& config, const std::string& basepath) {
     for (const auto& jobCount : config.jobCounts) {
