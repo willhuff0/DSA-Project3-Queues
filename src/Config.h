@@ -2,7 +2,7 @@
 
 #include <vector>
 
-//#define ENABLE_THROUGHPUT_BENCHMARK
+#define ENABLE_THROUGHPUT_BENCHMARK
 #define THROUGHPUT_CONFIG defaultThroughputConfig
 #define THROUGHPUT_BASEPATH "../reporting/results/throughput/throughput"
 

@@ -118,7 +118,7 @@ void runThroughput(const BenchmarkSuiteConfig& config, const std::string& basepa
                 double throughputPerThread = avgThroughput / (producerCount + consumerCount);
                 std::cout << "[Throughput]  Average Throughput: " << formatThroughput(avgThroughput, 3) << " jobs/second" << std::endl;
                 std::cout << "[Throughput]  Throughput per thread: " << formatThroughput(throughputPerThread, 3) << " jobs/second/thread" << std::endl;
-                rows.emplace_back(QueueType::GetName(), producerCount, throughputPerThread);
+                rows.emplace_back(QueueType::GetName(), std::max(producerCount, consumerCount), throughputPerThread);
             }
         }(static_cast<TQueues*>(nullptr)), ...);
 
@@ -172,7 +172,7 @@ void runLatency(const BenchmarkSuiteConfig& config, const std::string& basepath)
                 }
 
                 double avgLatency = totalAvgLatency / config.iterations;
-                rows.emplace_back(QueueType::GetName(), producerCount, avgLatency);
+                rows.emplace_back(QueueType::GetName(), std::max(producerCount, consumerCount), avgLatency);
                 std::cout << "[Latency]  Average Latency: " << avgLatency << " ns" << std::endl;
             }
         }(static_cast<TQueues*>(nullptr)), ...);

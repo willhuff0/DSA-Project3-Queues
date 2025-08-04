@@ -5,7 +5,7 @@ import numpy as np
 import glob
 
 results_dir = "results/throughput"
-plots_dir = "plots/throughput_all_queues"
+plots_dir = "plots/throughput"
 os.makedirs(plots_dir, exist_ok=True)
 
 csv_files = glob.glob(os.path.join(results_dir, "*.csv"))
