@@ -11,7 +11,7 @@
 #include <memory>
 #include <vector>
 
-// Creates jobs in the order specified
+// Creates jobs in the order specified, and with the given inputs
 void createDefaultJobPool(std::vector<std::unique_ptr<Job>>& dest) {
     dest.push_back(std::make_unique<AllocJob>(1024 * 16));
     dest.push_back(std::make_unique<NoOpJob>());
