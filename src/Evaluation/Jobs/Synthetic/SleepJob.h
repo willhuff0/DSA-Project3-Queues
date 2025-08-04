@@ -7,6 +7,7 @@
 /// Simulates IO latency or other blocking operations
 class SleepJob : public Job {
 public:
+    // Constructor declaration
     SleepJob(int microseconds) : microseconds(microseconds) { }
 
     inline void operator()() override {

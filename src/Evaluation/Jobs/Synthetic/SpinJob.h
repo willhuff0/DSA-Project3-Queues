@@ -7,6 +7,7 @@
 /// Simulates CPU load with precise timing
 struct SpinJob : public Job {
 public:
+    // Constructor declaration
     SpinJob(int microseconds) : microseconds(microseconds) { }
 
     inline void operator()() override {
