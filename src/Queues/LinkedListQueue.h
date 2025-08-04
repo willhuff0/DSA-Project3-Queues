@@ -16,6 +16,7 @@ private:
 public:
     static std::string GetName() { return "Linked List Queue"; }
 
+    // Constructor and Deconstructor
     LinkedListQueue() {
         Node* dummy = new Node(nullptr);
         head.store(dummy);
@@ -30,6 +31,7 @@ public:
         }
     }
 
+    // Enqueue function
     void Enqueue(const T& value) override {
         Node* new_node = new Node(value);
         while (true) {
@@ -50,6 +52,7 @@ public:
         //CAS here?
     }
 
+    // Dequeue function
     bool Dequeue(T& out) override {
         while (true) {
             Node* first = head.load();
