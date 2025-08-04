@@ -6,92 +6,112 @@
 #include <atomic>
 #include <cassert>
 
-template<typename T, size_t bufferSize>
-class BoundedCircularBuffer : public IQueue<T> {
-    static_assert(bufferSize >= 2 && (bufferSize & bufferSize - 1) == 0);
+template<class T, size_t bufferSize>
+class BoundedCircularBufferQueue : public IQueue<T> {
+    static_assert((bufferSize & (bufferSize - 1)) == 0 && "bufferSize must be a power of two");
+public:
+    BoundedCircularBufferQueue();
+    ~BoundedCircularBufferQueue();
+
+    void Enqueue(const T& value) override;
+    bool Dequeue(T& out) override;
+
 private:
     struct Cell {
         std::atomic<size_t> sequence;
-
-        T value;
+        T data;
     };
 
-    static size_t const cachelineSize = 64;
-    typedef char cacheline_pad_t [cachelineSize];
-
-    cacheline_pad_t pad0;
+    const size_t bufferMask;
     Cell* const buffer;
-    size_t const bufferMask;
-    cacheline_pad_t pad1;
-    std::atomic<size_t> enqueuePosition;
-    cacheline_pad_t pad2;
-    std::atomic<size_t> dequeuePosition;
-    cacheline_pad_t pad3;
 
-    BoundedCircularBuffer& operator=(BoundedCircularBuffer const&);
-    public:
-    // Constructor
-    BoundedCircularBuffer() : buffer(new Cell[bufferSize]), bufferMask(bufferSize - 1) {
-        for (size_t i = 0; i < bufferSize; i++) {
-            buffer[i].sequence.store(i, std::memory_order_relaxed);
-        }
-        enqueuePosition.store(0, std::memory_order_relaxed);
-        dequeuePosition.store(0, std::memory_order_relaxed);
-    }
-
-    // Destructor
-    ~BoundedCircularBuffer() {
-        delete[] buffer;
-    }
-
-    void Enqueue(const T& value) {
-        Cell* cell;
-        size_t position = enqueuePosition.load(std::memory_order_relaxed);
-        for (int i = 0; i > -1; i++) {
-            cell = &buffer[position & (bufferMask - 1)];
-            size_t sequence = cell->sequence.load(std::memory_order_acquire);
-            intptr_t diff = (intptr_t)sequence - (intptr_t)position;
-            if (diff == 0) {
-                if (enqueuePosition.compare_exchange_weak(position, position + 1,
-                    std::memory_order_relaxed)) {
-                    break;
-                }
-            }
-            else if (diff < 0) {
-                return;//return false;
-            }
-            else {
-                position = enqueuePosition.load(std::memory_order_relaxed);
-            }
-        }
-        cell->value = value;
-        cell->sequence.store(position + 1, std::memory_order_release);
-        //return true;
-    }
-
-    bool Dequeue(T& job) {
-        Cell* cell;
-        size_t position = dequeuePosition.load(std::memory_order_relaxed);
-        for (int i = 0; i > -1; i++) {
-            cell = &buffer[position];
-            size_t sequence = cell->sequence.load(std::memory_order_acquire);
-            intptr_t diff = (intptr_t)sequence - (intptr_t)(position + 1);
-
-            if (diff == 0) {
-                if (dequeuePosition.compare_exchange_weak(position, position + 1,
-                    std::memory_order_relaxed)) {
-                    break;
-                }
-            }
-            else if (diff < 0) {
-                return false;
-            }
-            else {
-                position = dequeuePosition.load(std::memory_order_relaxed);
-            }
-        }
-        job = cell->value;
-        cell->sequence.store(position + +bufferMask + 1, std::memory_order_release);
-        return true;
-    }
+    // Padding to avoid false sharing (https://en.wikipedia.org/wiki/False_sharing)
+    alignas(std::hardware_destructive_interference_size) std::atomic<size_t> enqueuePos{0};
+    alignas(std::hardware_destructive_interference_size) std::atomic<size_t> dequeuePos{0};
 };
+
+template<typename T, size_t bufferSize>
+BoundedCircularBufferQueue<T, bufferSize>::BoundedCircularBufferQueue()
+        : bufferMask(bufferSize - 1),
+          buffer(reinterpret_cast<Cell*>(operator new[](sizeof(Cell) * bufferSize))) {
+    for(size_t i = 0; i < bufferSize; i++) {
+        new(&buffer[i]) Cell();
+        buffer[i].sequence.store(i, std::memory_order_relaxed);
+    }
+}
+
+template<typename T, size_t bufferSize>
+BoundedCircularBufferQueue<T, bufferSize>::~BoundedCircularBufferQueue() {
+    operator delete[](buffer);
+}
+
+template<typename T, size_t bufferSize>
+void BoundedCircularBufferQueue<T, bufferSize>::Enqueue(const T &value) {
+    Cell* cell;
+    size_t pos = enqueuePos.load(std::memory_order_relaxed);
+
+    while (true) {
+        // since bufferSize is po2, pos & bufferMask == pos % bufferSize
+        cell = &buffer[pos & bufferMask];
+        size_t sequence = cell->sequence.load(std::memory_order_acquire);
+        intptr_t diff = (intptr_t)sequence - (intptr_t)pos;
+
+        if (diff == 0) {
+            // Slot is free
+            if (enqueuePos.compare_exchange_weak(pos, pos+1, std::memory_order_relaxed)) {
+                break;
+            }
+            // compare and exchange failed, another thread already swapped it, try again
+        }
+        else if (diff < 0) {
+            // buffer is full
+            return;
+        }
+        else {
+            // different thread won the enqueue, try again
+            pos = enqueuePos.load(std::memory_order_relaxed);
+        }
+    }
+
+    // got a cell
+    cell->data = value;
+
+    // mark cell ready for dequeue
+    cell->sequence.store(pos + 1, std::memory_order_release);
+}
+
+template<typename T, size_t bufferSize>
+bool BoundedCircularBufferQueue<T, bufferSize>::Dequeue(T &out) {
+    Cell* cell;
+    size_t pos = dequeuePos.load(std::memory_order_relaxed);
+
+    while (true) {
+        cell = &buffer[pos & bufferMask];
+        size_t sequence = cell->sequence.load(std::memory_order_acquire);
+        intptr_t diff = (intptr_t)sequence - (intptr_t)(pos + 1);
+
+        if (diff == 0) {
+            // slot is ready to dequeue
+            if (dequeuePos.compare_exchange_weak(pos, pos+1, std::memory_order_relaxed)) {
+                break;
+            }
+            // compare and exchange failed, another thread beat us, try again
+        }
+        else if (diff < 0) {
+            // queue is empty
+            return false;
+        }
+        else {
+            // another thread beat us, try again
+            pos = dequeuePos.load(std::memory_order_relaxed);
+        }
+    }
+
+    // got a cell
+    out = cell->data;
+
+    // mark cell ready for enqueue
+    cell->sequence.store(pos + bufferMask + 1, std::memory_order_release);
+
+    return true;
+}
