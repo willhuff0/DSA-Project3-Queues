@@ -16,6 +16,7 @@ public:
         return Clock::now() - last;
     }
 
+    // Finds time difference between this Tick() call and last Tick() call
     typename Clock::duration Tick() {
         auto now = Clock::now();
         auto elapsed = now - last;
@@ -23,6 +24,7 @@ public:
         return elapsed;
     }
 
+    // Automatically calls Tick() and prints time difference between call of this function and last Tick() call
     typename Clock::duration TickAndPrint(const std::string& message = "") {
         auto elapsed = Tick();
         std::cout << message << " (" << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << " ms)" << std::endl;

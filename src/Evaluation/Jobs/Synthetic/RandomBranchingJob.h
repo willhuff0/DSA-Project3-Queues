@@ -7,6 +7,7 @@
 
 class RandomBranchingJob : public Job {
 public:
+    // Constructor declaration
     RandomBranchingJob() = default;
 
     inline void operator()() override {

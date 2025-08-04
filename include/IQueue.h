@@ -1,5 +1,6 @@
 #pragma once
 
+// Template class for queues
 template<typename T>
 class IQueue {
 public:
