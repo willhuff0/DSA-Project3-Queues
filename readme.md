@@ -2,7 +2,7 @@
 
 This project benchmarks various lock-free Multi-Producer Multi-Consumer (MPMC) queue implementations for use in a job system. Job systems are fundamental to high-performance, multithreaded applications like web servers, game engines, scientific computing apps, and trading bots, where the efficiency of the underlying queue is critical.
 
-An efficient queue can increase overall CPU utilization, which translates to better application performance (e.g., higher frame rates in games, faster simulations, or quicker data processing). This investigation provides empirical data on queue throughput and latency under various producer/consumer loads.
+The job queue is the backbone of a job system. An efficient queue can increase overall CPU utilization, which translates to better application performance (e.g., higher frame rates in games, faster simulations, or quicker data processing). This investigation provides empirical data on queue throughput and latency under various producer/consumer loads.
 
 ## Running the Code
 
